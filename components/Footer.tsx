@@ -4,13 +4,14 @@ export function Footer() {
       <div className="mx-auto max-w-[1120px] px-6 py-10 text-sm leading-relaxed text-muted">
         <p className="max-w-2xl">
           <span className="italic">The Spread</span> compares the live price of
-          tokenized stock perpetuals on{" "}
+          tokenized perpetuals on{" "}
           <span className="text-ink">Hyperliquid</span> (HIP-3, the{" "}
-          <span className="nums">xyz</span> perp dex) against their
-          traditional-market price from{" "}
+          <span className="nums">xyz</span> perp dex) — stocks, indices, ETFs
+          and commodities — against their traditional-market price from{" "}
           <span className="text-ink">Yahoo Finance</span>. Hyperliquid trades
           24/7, so when Wall Street is closed the two prices drift apart — that
-          gap is the spread.
+          gap is the spread. The trailing chart shows each asset’s Hyperliquid
+          price over the last 24 hours.
         </p>
         <p className="mt-4 max-w-2xl text-faint">
           For informational purposes only. Not investment advice. Prices may be

@@ -8,13 +8,19 @@ closed (nights, weekends, holidays) the on-chain price keeps moving while the
 last cash-market print sits still — and the two drift apart. **The Spread**
 surfaces that gap, live, to the cent.
 
-For every stock it shows:
+For every asset it shows:
 
 - the live **Hyperliquid** price (and its 24h move),
 - the latest **Wall Street** price (and previous close),
-- the **spread** in absolute dollars and percent, labelled **premium**
+- the **spread** in absolute terms and percent, labelled **premium**
   (Hyperliquid trades above) or **discount** (Hyperliquid trades below),
+- a **24h sparkline** of the Hyperliquid price,
 - Hyperliquid open interest, and an overall market-status badge.
+
+Stocks are the default view; **Indices**, **ETFs** and **Commodities** are
+available via the category tabs. You can sort by any column, search, export the
+current table to **CSV/JSON**, and your category/sort preferences are remembered
+across visits.
 
 ## What "spread" means here
 
@@ -32,9 +38,10 @@ figure is stale) — the price timestamp and market-status badge make that expli
 ## Data sources
 
 - **Hyperliquid** — public `info` API (`https://api.hyperliquid.xyz/info`), no
-  key required. Stocks are HIP-3 builder-deployed perps under the `xyz` perp dex
-  (symbols like `xyz:AAPL`). We read `allMids` for live mids and
-  `metaAndAssetCtxs` for mark/oracle/prev-day prices and open interest.
+  key required. Markets are HIP-3 builder-deployed perps under the `xyz` perp
+  dex (symbols like `xyz:AAPL`). We read `allMids` for live mids,
+  `metaAndAssetCtxs` for mark/oracle/prev-day prices and open interest, and
+  `candleSnapshot` (hourly) for the 24h sparklines.
 - **Traditional market** — Yahoo Finance chart endpoint
   (`query1.finance.yahoo.com/v8/finance/chart`), no key required. Called only
   from the server (avoids CORS, adds a browser User-Agent), with pre/post-market
@@ -45,11 +52,20 @@ which returns ready-to-render rows.
 
 ## Scope
 
-v1 covers US-listed, USD-denominated single-name equities that map 1:1 to a
-Yahoo ticker (see `lib/universe.ts`). The dashboard only renders symbols that are
-also live on Hyperliquid, so the list self-prunes. Commodities, FX, indices,
-ETFs, and non-USD international names are intentionally excluded (the latter due
-to currency mismatch — a future FX-conversion enhancement).
+Coverage is a curated, unit-consistent mapping (see `lib/universe.ts`):
+
+- **Stocks** — US-listed, USD single-name equities (Yahoo ticker == HL ticker).
+- **Indices** — S&P 500, Nikkei 225, Nifty 50, Bovespa, VIX (compared in index
+  points).
+- **ETFs** — XLE, EWJ, EWY, EWZ, EWT, URNM.
+- **Commodities** — gold, silver, platinum, palladium, copper, WTI, Brent,
+  natural gas (Yahoo continuous futures, in USD).
+
+The dashboard only renders symbols that are also live on Hyperliquid, so the list
+self-prunes. Deliberately excluded for correctness: FX (ambiguous quote
+conventions), grains (Yahoo quotes them in US cents), non-USD international
+single names (currency mismatch), and venue-native/private synthetics with no
+clean public quote.
 
 ## Tech
 
@@ -79,13 +95,15 @@ app/
   page.tsx                # masthead + dashboard + footer
   globals.css             # white-aesthetic design tokens
   api/spreads/route.ts    # combines Hyperliquid + Yahoo, computes spreads
-components/                # dashboard, table, cards, badges, sorting
+  api/sparklines/route.ts # 24h Hyperliquid close series per asset
+components/                # dashboard, table, cards, tabs, sparkline, badges
 lib/
-  hyperliquid.ts           # HL info API client
+  hyperliquid.ts           # HL info API client (mids, ctxs, candles)
   yahoo.ts                 # Yahoo chart client (+ concurrency-limited batch)
-  universe.ts              # curated stock mapping
+  universe.ts              # curated asset mapping + categories
   spread.ts                # spread / % math
   marketHours.ts           # US session status
+  export.ts                # CSV/JSON download helpers
   cache.ts, format.ts, types.ts
 ```
 
