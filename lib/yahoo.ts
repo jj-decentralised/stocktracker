@@ -98,6 +98,73 @@ export function fetchYahooQuote(symbol: string): Promise<YahooQuote | null> {
   );
 }
 
+export interface IntradayPoint {
+  /** Epoch seconds. */
+  time: number;
+  value: number;
+}
+
+const INTRADAY_TTL_MS = 30_000;
+
+interface YahooChartSeriesResponse {
+  chart?: {
+    result?: Array<{
+      timestamp?: number[];
+      indicators?: { quote?: Array<{ close?: (number | null)[] }> };
+    }> | null;
+  };
+}
+
+async function fetchYahooIntradayUncached(
+  symbol: string,
+  range: string,
+  interval: string,
+): Promise<IntradayPoint[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const url = `${BASE}${encodeURIComponent(
+      symbol,
+    )}?interval=${interval}&range=${range}&includePrePost=true`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as YahooChartSeriesResponse;
+    const result = data?.chart?.result?.[0];
+    const ts = result?.timestamp;
+    const closes = result?.indicators?.quote?.[0]?.close;
+    if (!ts || !closes) return [];
+
+    const points: IntradayPoint[] = [];
+    for (let i = 0; i < ts.length; i++) {
+      const v = closes[i];
+      if (typeof v === "number" && Number.isFinite(v)) {
+        points.push({ time: ts[i], value: v });
+      }
+    }
+    return points;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Intraday/historical close series for charting. Empty array on failure. */
+export function fetchYahooIntraday(
+  symbol: string,
+  range = "1d",
+  interval = "1m",
+): Promise<IntradayPoint[]> {
+  return cached(`yahoo:intraday:${symbol}:${range}:${interval}`, INTRADAY_TTL_MS, () =>
+    fetchYahooIntradayUncached(symbol, range, interval),
+  );
+}
+
 /** Fetch many quotes with a concurrency cap; failures resolve to null. */
 export async function fetchYahooQuotes(
   symbols: string[],

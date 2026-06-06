@@ -52,3 +52,23 @@ export interface SparklineResponse {
   /** symbol -> series of Hyperliquid close prices (oldest -> newest). */
   series: Record<string, number[]>;
 }
+
+/** A single time-series point. `time` is epoch **seconds** (lightweight-charts UTCTimestamp). */
+export interface Point {
+  time: number;
+  value: number;
+}
+
+export interface HistoryResponse {
+  symbol: string;
+  name: string;
+  unit: Unit;
+  /** Hyperliquid price series (oldest -> newest). */
+  hl: Point[];
+  /** Wall Street / traditional price series (oldest -> newest). */
+  trad: Point[];
+  /** Latest traditional price (for live spread vs the streaming HL price). */
+  tradLast: number | null;
+  /** Per-symbol market status. */
+  marketStatus: MarketStatus;
+}

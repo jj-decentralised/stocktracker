@@ -62,7 +62,7 @@ interface RawCandle {
   c: string;
 }
 
-const CANDLE_TTL_MS = 5 * 60_000;
+const CANDLE_TTL_MS = 60_000;
 
 /**
  * Hourly Hyperliquid close prices for the trailing `hours` window.
@@ -88,6 +88,44 @@ export async function fetchCloses(
       return [];
     }
   });
+}
+
+export interface CandlePoint {
+  /** Epoch seconds (candle open time). */
+  time: number;
+  value: number;
+}
+
+/**
+ * Hyperliquid close-price points for charting, over the trailing `lookbackMs`
+ * at the given candle interval. Returns oldest -> newest in epoch SECONDS.
+ * Empty array on failure (charts degrade gracefully).
+ */
+export async function fetchCandlePoints(
+  coin: string,
+  interval: string,
+  lookbackMs: number,
+): Promise<CandlePoint[]> {
+  return cached(
+    `hl:points:${coin}:${interval}:${lookbackMs}`,
+    CANDLE_TTL_MS,
+    async () => {
+      const end = Date.now();
+      const start = end - lookbackMs;
+      try {
+        const candles = await postInfo<RawCandle[]>({
+          type: "candleSnapshot",
+          req: { coin, interval, startTime: start, endTime: end },
+        });
+        if (!Array.isArray(candles)) return [];
+        return candles
+          .map((c) => ({ time: Math.floor(c.t / 1000), value: Number(c.c) }))
+          .filter((p) => Number.isFinite(p.value) && Number.isFinite(p.time));
+      } catch {
+        return [];
+      }
+    },
+  );
 }
 
 export function fetchMetaAndAssetCtxs(
