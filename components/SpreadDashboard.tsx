@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SpreadsResponse, SparklineResponse } from "@/lib/types";
+import type { SpreadsResponse } from "@/lib/types";
 import type { Category } from "@/lib/universe";
 import { isCategory } from "@/lib/universe";
 import { MarketStatusBadge } from "./MarketStatusBadge";
 import { CategoryTabs } from "./CategoryTabs";
-import { SpreadTable } from "./SpreadTable";
-import { SpreadCard } from "./SpreadCard";
-import { sortRows, defaultDir, type SortKey, type SortDir } from "./sorting";
+import { AssetCard, type AssetCardData } from "./AssetCard";
+import { sortRows, type SortKey, type SortDir } from "./sorting";
 import { formatRelativeTime, formatPct } from "@/lib/format";
 import { rowsToCsv, rowsToJson, downloadFile } from "@/lib/export";
+import { hlSocket } from "@/lib/hlSocket";
 
 const REFRESH_MS = 15_000;
-const SPARK_REFRESH_MS = 5 * 60_000;
-const STORAGE_KEY = "the-spread:prefs:v1";
+const STORAGE_KEY = "the-spread:prefs:v2";
 
 interface Prefs {
   category: Category;
@@ -25,7 +24,6 @@ interface Prefs {
 export function SpreadDashboard() {
   const [category, setCategory] = useState<Category>("stocks");
   const [data, setData] = useState<SpreadsResponse | null>(null);
-  const [series, setSeries] = useState<Record<string, number[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -33,12 +31,14 @@ export function SpreadDashboard() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [, forceTick] = useState(0);
-  // Tracks the category whose data we currently want, so late-arriving
-  // responses for a previously-selected category can be discarded.
   const activeCategory = useRef<Category>("stocks");
 
-  // Load persisted preferences once on mount (client-only to avoid SSR mismatch).
-  // Hydrating state from localStorage on mount is an intentional, one-shot sync.
+  // Start the shared live price socket once.
+  useEffect(() => {
+    hlSocket.start();
+  }, []);
+
+  // Load persisted preferences once on mount.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
@@ -56,7 +56,6 @@ export function SpreadDashboard() {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Persist preferences whenever they change (after initial load).
   useEffect(() => {
     if (!prefsLoaded) return;
     try {
@@ -76,7 +75,7 @@ export function SpreadDashboard() {
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = (await res.json()) as SpreadsResponse;
-      if (activeCategory.current !== cat) return; // stale response
+      if (activeCategory.current !== cat) return;
       setData(json);
       setError(null);
     } catch (err) {
@@ -87,27 +86,10 @@ export function SpreadDashboard() {
     }
   }, []);
 
-  const fetchSparklines = useCallback(async (cat: Category) => {
-    try {
-      const res = await fetch(`/api/sparklines?category=${cat}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const json = (await res.json()) as SparklineResponse;
-      if (activeCategory.current !== cat) return; // stale response
-      setSeries(json.series ?? {});
-    } catch {
-      /* sparklines are optional */
-    }
-  }, []);
-
-  // Prices: initial load + polling (paused while the tab is hidden). Waits for
-  // persisted prefs so we don't fetch the default category then immediately
-  // refetch the restored one (which could race).
   useEffect(() => {
     if (!prefsLoaded) return;
     activeCategory.current = category;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set only after the async fetch resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state set only after async fetch resolves.
     void fetchData(category);
     const interval = setInterval(() => {
       if (!document.hidden) fetchData(category);
@@ -122,32 +104,10 @@ export function SpreadDashboard() {
     };
   }, [fetchData, category, prefsLoaded]);
 
-  // Sparklines: refresh on category change, then every few minutes.
-  useEffect(() => {
-    if (!prefsLoaded) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set only after the async fetch resolves.
-    void fetchSparklines(category);
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchSparklines(category);
-    }, SPARK_REFRESH_MS);
-    return () => clearInterval(interval);
-  }, [fetchSparklines, category, prefsLoaded]);
-
   // Keep the "updated Xs ago" label live.
   useEffect(() => {
     const t = setInterval(() => forceTick((n) => n + 1), 1000);
     return () => clearInterval(t);
-  }, []);
-
-  const handleSort = useCallback((key: SortKey) => {
-    setSortKey((prevKey) => {
-      if (prevKey === key) {
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-        return key;
-      }
-      setSortDir(defaultDir(key));
-      return key;
-    });
   }, []);
 
   const handleCategory = useCallback(
@@ -156,7 +116,6 @@ export function SpreadDashboard() {
       activeCategory.current = c;
       setLoading(true);
       setData(null);
-      setSeries({});
       setCategory(c);
     },
     [category],
@@ -199,25 +158,25 @@ export function SpreadDashboard() {
     (kind: "csv" | "json") => {
       if (rows.length === 0) return;
       const stamp = new Date().toISOString().slice(0, 10);
-      if (kind === "csv") {
-        downloadFile(
-          `the-spread-${category}-${stamp}.csv`,
-          rowsToCsv(rows),
-          "text/csv;charset=utf-8",
-        );
-      } else {
-        downloadFile(
-          `the-spread-${category}-${stamp}.json`,
-          rowsToJson(rows),
-          "application/json",
-        );
-      }
+      const name = `the-spread-${category}-${stamp}.${kind}`;
+      const content = kind === "csv" ? rowsToCsv(rows) : rowsToJson(rows);
+      const mime = kind === "csv" ? "text/csv;charset=utf-8" : "application/json";
+      downloadFile(name, content, mime);
     },
     [rows, category],
   );
 
+  const cards: AssetCardData[] = rows.map((r) => ({
+    symbol: r.symbol,
+    name: r.name,
+    unit: r.unit,
+    tradPrice: r.tradPrice,
+    seedHlPrice: r.hlPrice,
+    seedSpreadPct: r.spreadPct,
+  }));
+
   return (
-    <div className="mx-auto max-w-[1120px] px-6">
+    <div className="mx-auto max-w-[1180px] px-6">
       {/* Category navigation */}
       <div className="border-b border-hairline-strong pt-2">
         <CategoryTabs active={category} onChange={handleCategory} />
@@ -248,7 +207,7 @@ export function SpreadDashboard() {
             <button
               type="button"
               onClick={() => handleExport("csv")}
-              className="hover:text-ink underline-offset-4 hover:underline cursor-pointer"
+              className="cursor-pointer underline-offset-4 hover:text-ink hover:underline"
             >
               CSV
             </button>
@@ -256,7 +215,7 @@ export function SpreadDashboard() {
             <button
               type="button"
               onClick={() => handleExport("json")}
-              className="hover:text-ink underline-offset-4 hover:underline cursor-pointer"
+              className="cursor-pointer underline-offset-4 hover:text-ink hover:underline"
             >
               JSON
             </button>
@@ -284,37 +243,25 @@ export function SpreadDashboard() {
         </dl>
       )}
 
-      {/* Error banner — keeps last good data visible underneath */}
       {error && (
         <div className="mt-4 border border-discount/30 bg-discount-wash px-4 py-2 text-sm text-discount">
           Couldn’t refresh data ({error}). Showing the last available numbers.
         </div>
       )}
 
-      {/* Loading skeleton */}
+      {/* Live overlay chart grid */}
       {loading && !data ? (
-        <SkeletonRows />
-      ) : rows.length === 0 ? (
+        <SkeletonGrid />
+      ) : cards.length === 0 ? (
         <p className="py-16 text-center italic text-muted">
           {query ? `No assets match “${query}”.` : "No assets available."}
         </p>
       ) : (
-        <>
-          <div className="mt-2 hidden md:block">
-            <SpreadTable
-              rows={rows}
-              series={series}
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onSort={handleSort}
-            />
-          </div>
-          <div className="md:hidden">
-            {rows.map((r) => (
-              <SpreadCard key={r.symbol} row={r} series={series[r.symbol]} />
-            ))}
-          </div>
-        </>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((c) => (
+            <AssetCard key={c.symbol} data={c} category={category} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -343,13 +290,13 @@ function Stat({
   );
 }
 
-function SkeletonRows() {
+function SkeletonGrid() {
   return (
-    <div className="mt-6 animate-pulse space-y-3" aria-hidden>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between">
-          <div className="h-4 w-40 rounded bg-hairline" />
-          <div className="h-4 w-24 rounded bg-hairline" />
+    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
+      {Array.from({ length: 9 }).map((_, i) => (
+        <div key={i} className="border border-hairline p-4">
+          <div className="h-4 w-32 rounded bg-hairline" />
+          <div className="mt-3 h-[120px] w-full animate-pulse rounded bg-paper" />
         </div>
       ))}
     </div>
