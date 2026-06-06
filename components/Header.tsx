@@ -7,7 +7,7 @@ export function Header() {
           The Spread
         </h1>
         <p className="mt-3 max-w-xl text-lg italic text-muted">
-          Where on-chain stock perpetuals disagree with the traditional market —
+          Where on-chain perpetuals disagree with the traditional market —
           tracked live, to the cent.
         </p>
       </div>
