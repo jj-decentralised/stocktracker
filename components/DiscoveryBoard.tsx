@@ -74,20 +74,6 @@ export function DiscoveryBoard() {
 
   return (
     <div className="mx-auto max-w-[1180px] px-6">
-      {/* Thesis hero */}
-      <div className="border-b border-hairline py-8">
-        <p className="eyebrow">Price-discovery benchmark</p>
-        <h2 className="mt-3 max-w-3xl text-3xl leading-snug tracking-tight sm:text-4xl">
-          How accurately does Hyperliquid price stocks while Wall&nbsp;Street
-          sleeps?
-        </h2>
-        <p className="mt-3 max-w-2xl text-lg italic text-muted">
-          For each stock we take Hyperliquid&rsquo;s last off-hours price before
-          the opening bell and compare it to what the regular market actually
-          did — measuring how good its overnight price discovery really is.
-        </p>
-      </div>
-
       {/* Aggregate stats */}
       {data && (
         <dl className="grid grid-cols-2 gap-px border-b border-hairline bg-hairline sm:grid-cols-4">

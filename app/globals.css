@@ -1,18 +1,16 @@
 @import "tailwindcss";
 
-/* ── Plain-white editorial palette ─────────────────────────────────────── */
+/* ── Visual Index design system: neon / black / white brutalist ─────────── */
 :root {
   --background: #ffffff;
-  --paper: #fcfcfb;
-  --ink: #14130f;
-  --muted: #6b6862;
-  --faint: #9a958c;
-  --hairline: #e7e4dd;
-  --hairline-strong: #d8d4cb;
-  --premium: #1a7f4b;
-  --discount: #b42318;
-  --premium-wash: #f0f7f2;
-  --discount-wash: #fbf2f1;
+  --paper: #fafafa;
+  --ink: #000000;
+  --muted: #555555;
+  --faint: #888888;
+  --line: #000000; /* brutalist 1px black borders */
+  --neon: #00ff00;
+  --up: #009900;
+  --down: #cc0000;
 }
 
 @theme inline {
@@ -21,39 +19,45 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
-  --color-hairline: var(--hairline);
-  --color-hairline-strong: var(--hairline-strong);
-  --color-premium: var(--premium);
-  --color-discount: var(--discount);
-  --font-serif: var(--font-eb-garamond), Georgia, "Times New Roman", serif;
+  --color-line: var(--line);
+  --color-neon: var(--neon);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  /* Keep legacy token names mapped so existing classes still resolve. */
+  --color-hairline: var(--line);
+  --color-hairline-strong: var(--line);
+  --color-premium: var(--up);
+  --color-discount: var(--down);
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
 }
 
 * {
-  border-color: var(--hairline);
+  border-color: var(--line);
 }
 
 body {
   background: var(--background);
   color: var(--ink);
-  font-family: var(--font-serif);
-  font-feature-settings: "kern" 1, "liga" 1;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
-/* Tabular, right-alignable figures for price/spread columns. */
+/* Tabular figures for price/number columns. */
 .nums {
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-/* Letter-spaced small-caps style section labels. */
+/* Tiny uppercase label (the design's text-xs). */
 .eyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--muted);
+  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -64,6 +68,6 @@ body {
 }
 
 ::selection {
-  background: #14130f;
-  color: #ffffff;
+  background: var(--neon);
+  color: var(--ink);
 }

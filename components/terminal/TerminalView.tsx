@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Inter } from "next/font/google";
 import styles from "./Terminal.module.css";
-import { TerminalHeader, MarketBanner, TerminalFooter } from "./TerminalChrome";
+import { MarketBanner } from "./TerminalChrome";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { TickerTape } from "./TickerTape";
 import { StockItem } from "./StockItem";
 import {
@@ -154,7 +156,7 @@ export function TerminalView() {
 
   return (
     <div className={`${styles.root} ${inter.className}`}>
-      <TerminalHeader />
+      <Header />
       <MarketBanner />
       <TickerTape />
       <section className={styles.stockGrid}>
@@ -162,7 +164,7 @@ export function TerminalView() {
           <StockItem key={card.symbol} card={card} />
         ))}
       </section>
-      <TerminalFooter />
+      <Footer />
     </div>
   );
 }

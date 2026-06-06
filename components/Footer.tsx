@@ -1,24 +1,27 @@
 export function Footer() {
   return (
-    <footer className="mt-20 border-t border-hairline">
-      <div className="mx-auto max-w-[1120px] px-6 py-10 text-sm leading-relaxed text-muted">
-        <p className="max-w-2xl">
-          <span className="italic">The Spread</span> compares the live price of
-          tokenized perpetuals on{" "}
-          <span className="text-ink">Hyperliquid</span> (HIP-3, the{" "}
-          <span className="nums">xyz</span> perp dex) — stocks, indices, ETFs
-          and commodities — against their traditional-market price from{" "}
-          <span className="text-ink">Yahoo Finance</span>. Hyperliquid trades
-          24/7, so when Wall Street is closed the two prices drift apart — that
-          gap is the spread. The trailing chart shows each asset’s Hyperliquid
-          price over the last 24 hours.
-        </p>
-        <p className="mt-4 max-w-2xl text-faint">
-          For informational purposes only. Not investment advice. Prices may be
-          delayed or inaccurate; traditional-market quotes reflect the last
-          available session and may be stale outside of regular hours.
-        </p>
+    <footer className="mt-auto flex items-center justify-between border-t border-line px-5 py-3">
+      <div className="eyebrow text-faint">
+        The Spread © Hyperliquid HIP-3 (xyz) vs. Yahoo Finance. Not investment
+        advice.
       </div>
+      <nav>
+        <ul className="flex list-none gap-4">
+          <li>
+            <a
+              href="https://hyperliquid.xyz"
+              className="eyebrow text-ink hover:text-up"
+            >
+              Hyperliquid
+            </a>
+          </li>
+          <li>
+            <a href="#" className="eyebrow text-ink hover:text-up">
+              Terminal API
+            </a>
+          </li>
+        </ul>
+      </nav>
     </footer>
   );
 }

@@ -1,19 +1,47 @@
-import { MainNav } from "./MainNav";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const LINKS = [
+  { href: "/", label: "Live" },
+  { href: "/discovery", label: "Discovery" },
+  { href: "/terminal", label: "Index" },
+];
 
 export function Header() {
+  const pathname = usePathname();
   return (
-    <header className="border-b border-hairline-strong">
-      <div className="mx-auto max-w-[1180px] px-6 pt-12 pb-6">
-        <p className="eyebrow">Hyperliquid &times; Wall Street</p>
-        <h1 className="mt-3 text-5xl font-semibold tracking-tight sm:text-6xl">
-          The Spread
-        </h1>
-        <p className="mt-3 max-w-xl text-lg italic text-muted">
-          Where on-chain perpetuals disagree with the traditional market —
-          tracked live, to the cent.
-        </p>
-      </div>
-      <MainNav />
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-line bg-[#00ff00] px-5 py-3">
+      <nav aria-label="Primary">
+        <ul className="flex list-none gap-6">
+          {LINKS.map((l) => {
+            const active =
+              l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+            return (
+              <li key={l.href}>
+                <Link
+                  href={l.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`text-sm font-extrabold text-ink transition-opacity ${
+                    active
+                      ? "underline decoration-2 underline-offset-4"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      <Link
+        href="/"
+        className="text-2xl font-black leading-none tracking-tight text-ink"
+      >
+        THE&nbsp;SPREAD
+      </Link>
     </header>
   );
 }

@@ -94,7 +94,7 @@ export function AssetCard({
     <Link
       ref={ref}
       href={`/asset/${data.symbol}?category=${category}`}
-      className="group block border border-hairline p-4 transition-colors hover:border-hairline-strong hover:bg-paper"
+      className="group block border border-line p-4 transition-colors hover:bg-[#00ff00]"
     >
       <div className="flex items-baseline justify-between">
         <div className="flex items-baseline gap-2 overflow-hidden">

@@ -1,29 +1,4 @@
-import Link from "next/link";
 import styles from "./Terminal.module.css";
-
-export function TerminalHeader() {
-  return (
-    <header className={styles.header}>
-      <nav className={styles.nav}>
-        <ul>
-          <li>
-            <Link href="/">Market</Link>
-          </li>
-          <li>
-            <Link href="/discovery">Indices</Link>
-          </li>
-          <li>
-            <a href="#">News</a>
-          </li>
-          <li>
-            <a href="#">Portfolio</a>
-          </li>
-        </ul>
-      </nav>
-      <div className={`${styles.textMd} ${styles.brand}`}>INDEX</div>
-    </header>
-  );
-}
 
 export function MarketBanner() {
   return (
@@ -55,34 +30,5 @@ export function MarketBanner() {
         </a>
       </div>
     </div>
-  );
-}
-
-export function TerminalFooter() {
-  return (
-    <footer className={styles.footer}>
-      <div className={styles.textXs}>
-        Index © All data provided by exchange partners.
-      </div>
-      <nav>
-        <ul>
-          <li>
-            <a href="#" className={styles.textXs}>
-              Twitter
-            </a>
-          </li>
-          <li>
-            <a href="#" className={styles.textXs}>
-              Terminal API
-            </a>
-          </li>
-          <li>
-            <a href="#" className={styles.textXs}>
-              Settings
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </footer>
   );
 }
