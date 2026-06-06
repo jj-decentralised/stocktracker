@@ -76,6 +76,8 @@ export async function GET(request: Request) {
       tradTime: quote?.time ?? null,
       marketStatus,
       openInterest: parseNum(ctx?.openInterest),
+      hlPrevDay: prevDay,
+      hlDayVolume: parseNum(ctx?.dayNtlVlm),
       unit: asset.unit,
     };
   });

@@ -32,6 +32,10 @@ export interface SpreadRow {
   marketStatus: MarketStatus;
   /** Hyperliquid open interest (contracts), for context. */
   openInterest: number | null;
+  /** Hyperliquid previous-day price (for live 24h change recomputation). */
+  hlPrevDay: number | null;
+  /** Hyperliquid 24h notional (USD) volume. */
+  hlDayVolume: number | null;
   /** How to display the price (USD currency vs index points). */
   unit: Unit;
 }

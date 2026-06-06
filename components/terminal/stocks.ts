@@ -61,6 +61,57 @@ export const TERMINAL_STOCKS: TerminalStock[] = [
   },
 ];
 
+/** A fully-resolved card shown in the grid (real data fills this in). */
+export interface TerminalCard {
+  index: string;
+  symbol: string;
+  name: string;
+  price: number;
+  changeText: string;
+  direction: "up" | "down";
+  metaLeftLabel: string;
+  metaLeftValue: string;
+  metaRightLabel: string;
+  metaRightValue: string;
+  path: string;
+}
+
+/** Initial cards from the static design values (shown until real data loads). */
+export function initialCards(): TerminalCard[] {
+  return TERMINAL_STOCKS.map((s) => ({
+    index: s.index,
+    symbol: s.symbol,
+    name: s.name,
+    price: s.price,
+    changeText: s.change,
+    direction: s.direction,
+    metaLeftLabel: "Vol",
+    metaLeftValue: s.vol,
+    metaRightLabel: "Cap",
+    metaRightValue: s.cap,
+    path: s.path,
+  }));
+}
+
+/** Build an SVG sparkline path (viewBox 0 0 200 100) from a price series. */
+export function pointsToSparklinePath(values: number[]): string {
+  if (values.length < 2) return "";
+  const w = 200;
+  const h = 100;
+  const pad = 6;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const stepX = w / (values.length - 1);
+  return values
+    .map((v, i) => {
+      const x = i * stepX;
+      const y = pad + (1 - (v - min) / range) * (h - 2 * pad);
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
 export const TICKER_ITEMS = [
   { symbol: "AAPL", change: "+1.2%" },
   { symbol: "TSLA", change: "-0.4%" },

@@ -52,6 +52,8 @@ export interface HlAssetCtx {
   prevDayPx?: string;
   openInterest?: string;
   funding?: string;
+  /** 24h notional (USD) volume. */
+  dayNtlVlm?: string;
 }
 
 export interface MetaAndAssetCtxs {
