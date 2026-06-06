@@ -7,7 +7,10 @@ import { HL_PERP_DEX, fromHlSymbol } from "./universe";
 // mid prices out to per-symbol listeners. Handles reconnect with backoff and
 // pauses cleanly when the tab is hidden.
 
-const WS_URL = "wss://api.hyperliquid.xyz/ws";
+// Defaults to the public Hyperliquid WebSocket; override with a QuickNode WS
+// endpoint via NEXT_PUBLIC_HL_WS_URL (must be public — runs in the browser).
+const WS_URL =
+  process.env.NEXT_PUBLIC_HL_WS_URL?.trim() || "wss://api.hyperliquid.xyz/ws";
 
 type Listener = (price: number) => void;
 

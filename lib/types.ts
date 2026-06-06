@@ -52,6 +52,63 @@ export interface Point {
   value: number;
 }
 
+/** One off-hours episode: HL's overnight price vs the next regular session. */
+export interface Episode {
+  /** Trading day (ET, YYYY-MM-DD) of the regular session being predicted. */
+  date: string;
+  /** Previous regular-session close. */
+  prevClose: number;
+  /** Hyperliquid off-hours session open / mid / close (close = last price pre-bell). */
+  ohOpen: number;
+  ohMid: number;
+  ohClose: number;
+  /** Actual regular-session open and close. */
+  actualOpen: number;
+  actualClose: number;
+  /** (actualOpen − ohClose) / ohClose × 100. */
+  errOpenPct: number;
+  /** (actualClose − ohClose) / ohClose × 100. */
+  errClosePct: number;
+  /** Did HL's pre-bell price predict the gap direction vs prevClose? */
+  dirHitOpen: boolean;
+}
+
+export interface DiscoveryMetrics {
+  nEpisodes: number;
+  /** Mean absolute error of HL pre-bell vs actual open, %. */
+  maeOpenPct: number;
+  /** Mean absolute error of HL pre-bell vs actual close, %. */
+  maeClosePct: number;
+  /** Directional hit-rate vs the open, %. */
+  hitRateOpen: number;
+  /** Derived 0–100 convenience score (higher = better discovery). */
+  score: number;
+}
+
+export interface DiscoveryResponse {
+  symbol: string;
+  name: string;
+  metrics: DiscoveryMetrics;
+  episodes: Episode[];
+}
+
+export interface DiscoverySummaryRow {
+  symbol: string;
+  name: string;
+  metrics: DiscoveryMetrics;
+}
+
+export interface DiscoverySummaryResponse {
+  updatedAt: number;
+  aggregate: {
+    nStocks: number;
+    totalEpisodes: number;
+    medianMaeOpenPct: number;
+    avgHitRateOpen: number;
+  };
+  rows: DiscoverySummaryRow[];
+}
+
 export interface HistoryResponse {
   symbol: string;
   name: string;

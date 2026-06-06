@@ -154,6 +154,73 @@ async function fetchYahooIntradayUncached(
   }
 }
 
+export interface DailyBar {
+  /** Epoch seconds at the regular-session open. */
+  time: number;
+  open: number;
+  close: number;
+}
+
+const DAILY_TTL_MS = 10 * 60_000;
+
+interface YahooDailyResponse {
+  chart?: {
+    result?: Array<{
+      timestamp?: number[];
+      indicators?: {
+        quote?: Array<{ open?: (number | null)[]; close?: (number | null)[] }>;
+      };
+    }> | null;
+  };
+}
+
+async function fetchYahooDailyOHLCUncached(
+  symbol: string,
+  range: string,
+): Promise<DailyBar[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const url = `${BASE}${encodeURIComponent(symbol)}?interval=1d&range=${range}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as YahooDailyResponse;
+    const result = data?.chart?.result?.[0];
+    const ts = result?.timestamp;
+    const q = result?.indicators?.quote?.[0];
+    if (!ts || !q?.open || !q?.close) return [];
+
+    const bars: DailyBar[] = [];
+    for (let i = 0; i < ts.length; i++) {
+      const o = q.open[i];
+      const c = q.close[i];
+      if (typeof o === "number" && typeof c === "number") {
+        bars.push({ time: ts[i], open: o, close: c });
+      }
+    }
+    return bars;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Daily regular-session open/close bars for the discovery benchmark. */
+export function fetchYahooDailyOHLC(
+  symbol: string,
+  range = "3mo",
+): Promise<DailyBar[]> {
+  return cached(`yahoo:daily:${symbol}:${range}`, DAILY_TTL_MS, () =>
+    fetchYahooDailyOHLCUncached(symbol, range),
+  );
+}
+
 /** Intraday/historical close series for charting. Empty array on failure. */
 export function fetchYahooIntraday(
   symbol: string,
