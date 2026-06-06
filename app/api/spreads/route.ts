@@ -7,7 +7,7 @@ import {
 import { fetchYahooQuotes } from "@/lib/yahoo";
 import { computeSpread, pctChange, parseNum } from "@/lib/spread";
 import { deriveMarketStatus } from "@/lib/marketHours";
-import { STOCKS, toHlSymbol } from "@/lib/universe";
+import { assetsForCategory, isCategory } from "@/lib/universe";
 import type { SpreadRow, SpreadsResponse } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,11 @@ function hlPriceFor(ctx: HlAssetCtx | undefined, mid: string | undefined) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const categoryParam = url.searchParams.get("category");
+  const category = isCategory(categoryParam) ? categoryParam : "stocks";
+
   const marketStatus = deriveMarketStatus();
 
   let mids;
@@ -42,28 +46,26 @@ export async function GET() {
     );
   }
 
-  // Only keep curated stocks that are actually live on Hyperliquid right now.
-  const liveStocks = STOCKS.filter((s) => {
-    const coin = toHlSymbol(s.symbol);
-    return mids[coin] !== undefined || meta.ctxByName.has(coin);
-  });
+  // Only keep curated assets that are actually live on Hyperliquid right now.
+  const liveAssets = assetsForCategory(category).filter(
+    (a) => mids[a.hl] !== undefined || meta.ctxByName.has(a.hl),
+  );
 
-  const quotes = await fetchYahooQuotes(liveStocks.map((s) => s.symbol));
+  const quotes = await fetchYahooQuotes(liveAssets.map((a) => a.yahoo));
 
-  const rows: SpreadRow[] = liveStocks.map((stock) => {
-    const coin = toHlSymbol(stock.symbol);
-    const ctx = meta.ctxByName.get(coin);
-    const hlPrice = hlPriceFor(ctx, mids[coin]);
+  const rows: SpreadRow[] = liveAssets.map((asset) => {
+    const ctx = meta.ctxByName.get(asset.hl);
+    const hlPrice = hlPriceFor(ctx, mids[asset.hl]);
     const prevDay = parseNum(ctx?.prevDayPx);
 
-    const quote = quotes.get(stock.symbol) ?? null;
+    const quote = quotes.get(asset.yahoo) ?? null;
     const tradPrice = quote?.price ?? null;
 
     const spread = computeSpread(hlPrice, tradPrice);
 
     return {
-      symbol: stock.symbol,
-      name: stock.name,
+      symbol: asset.symbol,
+      name: asset.name,
       hlPrice,
       tradPrice,
       spreadAbs: spread.abs,
@@ -74,6 +76,7 @@ export async function GET() {
       tradTime: quote?.time ?? null,
       marketStatus,
       openInterest: parseNum(ctx?.openInterest),
+      unit: asset.unit,
     };
   });
 
@@ -87,6 +90,7 @@ export async function GET() {
   const payload: SpreadsResponse = {
     updatedAt: Date.now(),
     marketStatus,
+    category,
     rows,
   };
 

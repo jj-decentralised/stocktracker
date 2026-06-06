@@ -57,6 +57,39 @@ export interface MetaAndAssetCtxs {
 
 type RawMetaAndCtxs = [{ universe: HlUniverseAsset[] }, HlAssetCtx[]];
 
+interface RawCandle {
+  t: number;
+  c: string;
+}
+
+const CANDLE_TTL_MS = 5 * 60_000;
+
+/**
+ * Hourly Hyperliquid close prices for the trailing `hours` window.
+ * Returns oldest -> newest. Empty array on failure (sparklines are optional).
+ */
+export async function fetchCloses(
+  coin: string,
+  hours = 24,
+): Promise<number[]> {
+  return cached(`hl:closes:${coin}:${hours}`, CANDLE_TTL_MS, async () => {
+    const end = Date.now();
+    const start = end - hours * 60 * 60 * 1000;
+    try {
+      const candles = await postInfo<RawCandle[]>({
+        type: "candleSnapshot",
+        req: { coin, interval: "1h", startTime: start, endTime: end },
+      });
+      if (!Array.isArray(candles)) return [];
+      return candles
+        .map((c) => Number(c.c))
+        .filter((n) => Number.isFinite(n));
+    } catch {
+      return [];
+    }
+  });
+}
+
 export function fetchMetaAndAssetCtxs(
   dex = HL_PERP_DEX,
 ): Promise<MetaAndAssetCtxs> {

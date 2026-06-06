@@ -1,5 +1,7 @@
 // Shared types for the Hyperliquid x traditional-market spread tracker.
 
+import type { Category, Unit } from "./universe";
+
 export type SpreadDirection = "premium" | "discount" | "flat" | "unknown";
 
 export type MarketStatus = "pre" | "open" | "post" | "closed" | "unknown";
@@ -30,6 +32,8 @@ export interface SpreadRow {
   marketStatus: MarketStatus;
   /** Hyperliquid open interest (contracts), for context. */
   openInterest: number | null;
+  /** How to display the price (USD currency vs index points). */
+  unit: Unit;
 }
 
 export interface SpreadsResponse {
@@ -37,5 +41,14 @@ export interface SpreadsResponse {
   updatedAt: number;
   /** Aggregate US-market status used in the header. */
   marketStatus: MarketStatus;
+  /** Category these rows belong to. */
+  category: Category;
   rows: SpreadRow[];
+}
+
+export interface SparklineResponse {
+  /** Epoch ms when assembled. */
+  updatedAt: number;
+  /** symbol -> series of Hyperliquid close prices (oldest -> newest). */
+  series: Record<string, number[]>;
 }

@@ -11,6 +11,23 @@ export function formatMoney(value: number | null, currency = "USD"): string {
   }).format(value);
 }
 
+/** Plain decimal for index points (no currency symbol). */
+export function formatPoints(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+/** Unit-aware price: USD currency for stocks/ETFs/commodities, points for indices. */
+export function formatPrice(
+  value: number | null,
+  unit: "usd" | "points",
+): string {
+  return unit === "points" ? formatPoints(value) : formatMoney(value);
+}
+
 /** Signed percentage, e.g. "+1.24%" / "-0.80%". */
 export function formatPct(value: number | null, digits = 2): string {
   if (value === null || !Number.isFinite(value)) return "—";
