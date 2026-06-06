@@ -148,7 +148,9 @@ export const CATEGORIES: { key: Category; label: string }[] = [
   { key: "commodities", label: "Commodities" },
 ];
 
-export function isCategory(value: string | null): value is Category {
+export function isCategory(
+  value: string | null | undefined,
+): value is Category {
   return (
     value === "stocks" ||
     value === "indices" ||

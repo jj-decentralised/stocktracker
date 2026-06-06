@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createChart,
   LineSeries,
@@ -12,6 +12,8 @@ import {
   type LineData,
 } from "lightweight-charts";
 import type { Point } from "@/lib/types";
+import type { Unit } from "@/lib/universe";
+import { formatPrice, formatPct } from "@/lib/format";
 
 const INK = "#14130f";
 const WALL = "#b08968"; // warm tan for the Wall Street reference line
@@ -29,6 +31,7 @@ export function OverlayChart({
   compact = false,
   height = 220,
   showLegend = false,
+  unit = "usd",
 }: {
   hl: Point[];
   trad: Point[];
@@ -36,12 +39,16 @@ export function OverlayChart({
   compact?: boolean;
   height?: number;
   showLegend?: boolean;
+  unit?: Unit;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const hlSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const tradSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const lastHlTimeRef = useRef<number>(0);
+  const [readout, setReadout] = useState<{ hl?: number; ws?: number } | null>(
+    null,
+  );
 
   // Create the chart once.
   useEffect(() => {
@@ -99,6 +106,22 @@ export function OverlayChart({
     tradSeriesRef.current = tradSeries;
     hlSeriesRef.current = hlSeries;
 
+    if (!compact) {
+      chart.subscribeCrosshairMove((param) => {
+        if (!param.time) {
+          setReadout(null);
+          return;
+        }
+        const hlVal = param.seriesData.get(hlSeries) as
+          | { value?: number }
+          | undefined;
+        const wsVal = param.seriesData.get(tradSeries) as
+          | { value?: number }
+          | undefined;
+        setReadout({ hl: hlVal?.value, ws: wsVal?.value });
+      });
+    }
+
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
       if (w && chartRef.current) chartRef.current.applyOptions({ width: w });
@@ -132,13 +155,23 @@ export function OverlayChart({
     lastHlTimeRef.current = t;
   }, [livePrice]);
 
+  const spread =
+    readout?.hl !== undefined && readout?.ws !== undefined && readout.ws !== 0
+      ? ((readout.hl - readout.ws) / readout.ws) * 100
+      : null;
+
   return (
     <div className="relative w-full" style={{ height }}>
       {showLegend && (
-        <div className="pointer-events-none absolute left-2 top-1 z-10 flex gap-3 text-xs text-muted">
+        <div className="pointer-events-none absolute left-2 top-1 z-10 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
           <span className="flex items-center gap-1">
             <span className="inline-block h-[2px] w-4" style={{ background: INK }} />
             Hyperliquid
+            {readout?.hl !== undefined && (
+              <b className="nums ml-1 font-semibold text-ink">
+                {formatPrice(readout.hl, unit)}
+              </b>
+            )}
           </span>
           <span className="flex items-center gap-1">
             <span
@@ -148,7 +181,22 @@ export function OverlayChart({
               }}
             />
             Wall St
+            {readout?.ws !== undefined && (
+              <b className="nums ml-1 font-semibold text-ink">
+                {formatPrice(readout.ws, unit)}
+              </b>
+            )}
           </span>
+          {spread !== null && (
+            <span className="nums">
+              Spread{" "}
+              <b
+                className={`font-semibold ${spread >= 0 ? "text-premium" : "text-discount"}`}
+              >
+                {formatPct(spread)}
+              </b>
+            </span>
+          )}
         </div>
       )}
       <div ref={containerRef} className="h-full w-full" />
