@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SpreadsResponse, SparklineResponse } from "@/lib/types";
 import type { Category } from "@/lib/universe";
 import { isCategory } from "@/lib/universe";
@@ -33,6 +33,9 @@ export function SpreadDashboard() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [, forceTick] = useState(0);
+  // Tracks the category whose data we currently want, so late-arriving
+  // responses for a previously-selected category can be discarded.
+  const activeCategory = useRef<Category>("stocks");
 
   // Load persisted preferences once on mount (client-only to avoid SSR mismatch).
   // Hydrating state from localStorage on mount is an intentional, one-shot sync.
@@ -73,12 +76,14 @@ export function SpreadDashboard() {
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = (await res.json()) as SpreadsResponse;
+      if (activeCategory.current !== cat) return; // stale response
       setData(json);
       setError(null);
     } catch (err) {
+      if (activeCategory.current !== cat) return;
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
-      setLoading(false);
+      if (activeCategory.current === cat) setLoading(false);
     }
   }, []);
 
@@ -89,14 +94,19 @@ export function SpreadDashboard() {
       });
       if (!res.ok) return;
       const json = (await res.json()) as SparklineResponse;
+      if (activeCategory.current !== cat) return; // stale response
       setSeries(json.series ?? {});
     } catch {
       /* sparklines are optional */
     }
   }, []);
 
-  // Prices: initial load + polling (paused while the tab is hidden).
+  // Prices: initial load + polling (paused while the tab is hidden). Waits for
+  // persisted prefs so we don't fetch the default category then immediately
+  // refetch the restored one (which could race).
   useEffect(() => {
+    if (!prefsLoaded) return;
+    activeCategory.current = category;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set only after the async fetch resolves.
     void fetchData(category);
     const interval = setInterval(() => {
@@ -110,17 +120,18 @@ export function SpreadDashboard() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [fetchData, category]);
+  }, [fetchData, category, prefsLoaded]);
 
   // Sparklines: refresh on category change, then every few minutes.
   useEffect(() => {
+    if (!prefsLoaded) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set only after the async fetch resolves.
     void fetchSparklines(category);
     const interval = setInterval(() => {
       if (!document.hidden) fetchSparklines(category);
     }, SPARK_REFRESH_MS);
     return () => clearInterval(interval);
-  }, [fetchSparklines, category]);
+  }, [fetchSparklines, category, prefsLoaded]);
 
   // Keep the "updated Xs ago" label live.
   useEffect(() => {
@@ -142,6 +153,7 @@ export function SpreadDashboard() {
   const handleCategory = useCallback(
     (c: Category) => {
       if (c === category) return;
+      activeCategory.current = c;
       setLoading(true);
       setData(null);
       setSeries({});
