@@ -42,6 +42,17 @@ export function formatSignedMoney(value: number | null): string {
   return `${sign}${formatMoney(Math.abs(value))}`;
 }
 
+/** Signed, unit-aware delta ("+$1.20" for USD, "+12.30" for points). */
+export function formatSignedPrice(
+  value: number | null,
+  unit: "usd" | "points",
+): string {
+  if (value === null || !Number.isFinite(value)) return "—";
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  return `${sign}${unit === "points" ? formatPoints(abs) : formatMoney(abs)}`;
+}
+
 /** Compact large numbers, e.g. 1.2M, 45.3K. */
 export function formatCompact(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return "—";

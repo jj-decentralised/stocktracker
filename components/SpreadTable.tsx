@@ -1,22 +1,23 @@
 import type { SpreadRow } from "@/lib/types";
 import { ValueDelta } from "./ValueDelta";
+import { Sparkline } from "./Sparkline";
 import {
-  formatMoney,
+  formatPrice,
   formatPct,
-  formatSignedMoney,
+  formatSignedPrice,
   formatCompact,
 } from "@/lib/format";
 import type { SortKey } from "./sorting";
 
 interface Column {
-  key: SortKey;
+  key: SortKey | null;
   label: string;
-  align: "left" | "right";
-  hint?: string;
+  align: "left" | "right" | "center";
 }
 
 const COLUMNS: Column[] = [
   { key: "symbol", label: "Asset", align: "left" },
+  { key: null, label: "HL 24h", align: "center" },
   { key: "hlPrice", label: "Hyperliquid", align: "right" },
   { key: "tradPrice", label: "Wall Street", align: "right" },
   { key: "spreadAbs", label: "Spread", align: "right" },
@@ -31,11 +32,13 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 
 export function SpreadTable({
   rows,
+  series,
   sortKey,
   sortDir,
   onSort,
 }: {
   rows: SpreadRow[];
+  series: Record<string, number[]>;
   sortKey: SortKey;
   sortDir: "asc" | "desc";
   onSort: (key: SortKey) => void;
@@ -46,20 +49,28 @@ export function SpreadTable({
         <tr className="border-b border-hairline-strong">
           {COLUMNS.map((col) => (
             <th
-              key={col.key}
+              key={col.label}
               scope="col"
               className={`pb-2 font-normal ${
-                col.align === "right" ? "text-right" : "text-left"
+                col.align === "right"
+                  ? "text-right"
+                  : col.align === "center"
+                    ? "text-center"
+                    : "text-left"
               }`}
             >
-              <button
-                type="button"
-                onClick={() => onSort(col.key)}
-                className="eyebrow inline-flex items-center hover:text-ink transition-colors cursor-pointer"
-              >
-                {col.label}
-                <SortArrow active={sortKey === col.key} dir={sortDir} />
-              </button>
+              {col.key ? (
+                <button
+                  type="button"
+                  onClick={() => onSort(col.key as SortKey)}
+                  className="eyebrow inline-flex items-center hover:text-ink transition-colors cursor-pointer"
+                >
+                  {col.label}
+                  <SortArrow active={sortKey === col.key} dir={sortDir} />
+                </button>
+              ) : (
+                <span className="eyebrow">{col.label}</span>
+              )}
             </th>
           ))}
         </tr>
@@ -72,15 +83,19 @@ export function SpreadTable({
           >
             <td className="py-3 pr-4">
               <div className="flex items-baseline gap-2">
-                <span className="font-semibold tracking-tight">
-                  {r.symbol}
-                </span>
+                <span className="font-semibold tracking-tight">{r.symbol}</span>
                 <span className="truncate text-sm text-muted">{r.name}</span>
               </div>
             </td>
 
+            <td className="py-3 align-middle">
+              <div className="flex justify-center">
+                <Sparkline data={series[r.symbol]} />
+              </div>
+            </td>
+
             <td className="nums py-3 text-right tabular-nums">
-              <div>{formatMoney(r.hlPrice)}</div>
+              <div>{formatPrice(r.hlPrice, r.unit)}</div>
               {r.hlChangePct !== null && (
                 <div className="text-xs">
                   <ValueDelta
@@ -100,17 +115,17 @@ export function SpreadTable({
             </td>
 
             <td className="nums py-3 text-right tabular-nums">
-              <div>{formatMoney(r.tradPrice)}</div>
+              <div>{formatPrice(r.tradPrice, r.unit)}</div>
               {r.tradPrevClose !== null && (
                 <div className="text-xs text-faint">
-                  prev {formatMoney(r.tradPrevClose)}
+                  prev {formatPrice(r.tradPrevClose, r.unit)}
                 </div>
               )}
             </td>
 
             <td className="nums py-3 text-right tabular-nums">
               <ValueDelta
-                text={formatSignedMoney(r.spreadAbs)}
+                text={formatSignedPrice(r.spreadAbs, r.unit)}
                 direction={r.direction}
                 showGlyph={false}
               />
