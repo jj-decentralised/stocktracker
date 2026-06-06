@@ -99,6 +99,28 @@ Production build:
 npm run build && npm start
 ```
 
+## Configuration (optional — QuickNode)
+
+The app runs with **no configuration** (public Hyperliquid API + Yahoo). To route
+Hyperliquid through a QuickNode endpoint (better rate limits / reliability), set
+these env vars — see `.env.example`:
+
+| Variable | Where it's used | Example |
+| --- | --- | --- |
+| `HL_INFO_URL` | Server-side Hyperliquid `info` calls (mids, contexts, candles) | `https://<endpoint>.hyperliquid-mainnet.quiknode.pro/<TOKEN>/info` |
+| `NEXT_PUBLIC_HL_WS_URL` | Browser live-price WebSocket | `wss://<endpoint>.hyperliquid-mainnet.quiknode.pro/<TOKEN>` |
+
+- **Local:** copy `.env.example` → `.env.local`, paste your endpoint(s), restart `npm run dev`.
+- **Vercel:** Project → **Settings → Environment Variables** → add the same keys → **Redeploy**.
+
+> **Granularity note.** QuickNode improves rate limits and reliability, but it
+> proxies the *same* Hyperliquid data, so historical candle depth is unchanged
+> (Hyperliquid retains ~3 days of 1m, ~2 weeks of 5m, and full history at 15m).
+> Live Hyperliquid prices are already tick-level via WebSocket. The non-real-time
+> side is **Wall Street** (Yahoo), which QuickNode does not affect — making the
+> equities side tick-by-tick would require a real-time stock feed (Polygon /
+> Finnhub / Alpaca) behind the same interface.
+
 ## Project layout
 
 ```
