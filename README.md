@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Spread — Hyperliquid × Wall Street
 
-## Getting Started
+A plain-white, editorial dashboard that tracks the **spread** between tokenized
+stock perpetuals on **Hyperliquid** and their **traditional-market** price.
 
-First, run the development server:
+Hyperliquid trades 24/7; US equity markets do not. So whenever Wall Street is
+closed (nights, weekends, holidays) the on-chain price keeps moving while the
+last cash-market print sits still — and the two drift apart. **The Spread**
+surfaces that gap, live, to the cent.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+For every stock it shows:
+
+- the live **Hyperliquid** price (and its 24h move),
+- the latest **Wall Street** price (and previous close),
+- the **spread** in absolute dollars and percent, labelled **premium**
+  (Hyperliquid trades above) or **discount** (Hyperliquid trades below),
+- Hyperliquid open interest, and an overall market-status badge.
+
+## What "spread" means here
+
+```
+spread $  = hyperliquid_price − wall_street_price
+spread %  = spread $ / wall_street_price × 100
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Premium** (green ▲): Hyperliquid is pricing the stock *above* the cash market.
+- **Discount** (red ▼): Hyperliquid is pricing it *below* the cash market.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+A large spread is usually a sign that the cash market is closed (the Wall Street
+figure is stale) — the price timestamp and market-status badge make that explicit.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Data sources
 
-## Learn More
+- **Hyperliquid** — public `info` API (`https://api.hyperliquid.xyz/info`), no
+  key required. Stocks are HIP-3 builder-deployed perps under the `xyz` perp dex
+  (symbols like `xyz:AAPL`). We read `allMids` for live mids and
+  `metaAndAssetCtxs` for mark/oracle/prev-day prices and open interest.
+- **Traditional market** — Yahoo Finance chart endpoint
+  (`query1.finance.yahoo.com/v8/finance/chart`), no key required. Called only
+  from the server (avoids CORS, adds a browser User-Agent), with pre/post-market
+  prices when available.
 
-To learn more about Next.js, take a look at the following resources:
+Both upstreams are combined and cached server-side in the `/api/spreads` route,
+which returns ready-to-render rows.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scope
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+v1 covers US-listed, USD-denominated single-name equities that map 1:1 to a
+Yahoo ticker (see `lib/universe.ts`). The dashboard only renders symbols that are
+also live on Hyperliquid, so the list self-prunes. Commodities, FX, indices,
+ETFs, and non-USD international names are intentionally excluded (the latter due
+to currency mismatch — a future FX-conversion enhancement).
 
-## Deploy on Vercel
+## Tech
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Next.js 16](https://nextjs.org) (App Router) + TypeScript
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) via `next/font`
+- No database, no API keys — runs out of the box.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Run locally
+
+```bash
+npm install
+npm run dev      # http://localhost:3000
+```
+
+Production build:
+
+```bash
+npm run build && npm start
+```
+
+## Project layout
+
+```
+app/
+  layout.tsx              # EB Garamond + metadata
+  page.tsx                # masthead + dashboard + footer
+  globals.css             # white-aesthetic design tokens
+  api/spreads/route.ts    # combines Hyperliquid + Yahoo, computes spreads
+components/                # dashboard, table, cards, badges, sorting
+lib/
+  hyperliquid.ts           # HL info API client
+  yahoo.ts                 # Yahoo chart client (+ concurrency-limited batch)
+  universe.ts              # curated stock mapping
+  spread.ts                # spread / % math
+  marketHours.ts           # US session status
+  cache.ts, format.ts, types.ts
+```
+
+## Disclaimer
+
+For informational purposes only. **Not investment advice.** Prices may be
+delayed or inaccurate, and traditional-market quotes can be stale outside of
+regular trading hours.

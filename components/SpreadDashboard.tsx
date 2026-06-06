@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SpreadsResponse } from "@/lib/types";
 import { MarketStatusBadge } from "./MarketStatusBadge";
 import { SpreadTable } from "./SpreadTable";
@@ -33,9 +33,12 @@ export function SpreadDashboard() {
     }
   }, []);
 
-  // Initial load + polling (paused while the tab is hidden).
+  // Initial load + polling (paused while the tab is hidden). `fetchData` only
+  // sets state asynchronously (after the fetch resolves), so this does not
+  // trigger the cascading-render problem the lint rule guards against.
   useEffect(() => {
-    fetchData();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchData sets state only after the async fetch resolves, not synchronously.
+    void fetchData();
     const interval = setInterval(() => {
       if (!document.hidden) fetchData();
     }, REFRESH_MS);
