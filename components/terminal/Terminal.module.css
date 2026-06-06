@@ -1,0 +1,298 @@
+/* Faithful port of the "Visual Index" design — neon / black / white brutalist
+   terminal. Scoped via CSS modules; all rules hang off `.root` so the global
+   EB Garamond / white theme is untouched. */
+
+.root {
+  --neon: #00ff00;
+  --black: #000000;
+  --white: #ffffff;
+  --border-width: 1px;
+
+  background-color: var(--white);
+  color: var(--black);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.root *,
+.root *::before,
+.root *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Type scale */
+.textXs {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+.textSm {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.textMd {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.textLg {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+.textXl {
+  font-size: 120px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.8;
+}
+
+/* Header */
+.header {
+  background-color: var(--neon);
+  border-bottom: var(--border-width) solid var(--black);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav ul {
+  display: flex;
+  list-style: none;
+  gap: 24px;
+}
+
+.nav a {
+  color: var(--black);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.brand {
+  font-weight: 900;
+}
+
+/* Market banner */
+.marketBanner {
+  background-color: var(--neon);
+  padding: 40px 20px;
+  border-bottom: var(--border-width) solid var(--black);
+  display: grid;
+  grid-template-columns: 200px 1fr 400px;
+  gap: 40px;
+}
+
+.heroTitle {
+  grid-column: 2;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  background: var(--black);
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* Ticker tape */
+.tickerTape {
+  white-space: nowrap;
+  overflow: hidden;
+  border-bottom: var(--border-width) solid var(--black);
+  padding: 10px 0;
+  font-weight: 800;
+  font-size: 32px;
+  text-transform: uppercase;
+}
+
+.tickerInner {
+  display: inline-block;
+  animation: ticker 30s linear infinite;
+}
+
+.tickerItem {
+  display: inline-block;
+  padding-right: 40px;
+}
+
+.tickerItem span {
+  margin-left: 10px;
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tickerInner {
+    animation: none;
+  }
+}
+
+/* Stock grid */
+.stockGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-bottom: var(--border-width) solid var(--black);
+}
+
+.stockItem {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  border-right: var(--border-width) solid var(--black);
+  border-bottom: var(--border-width) solid var(--black);
+  min-height: 420px;
+  transition: background-color 0.2s ease;
+}
+
+.stockItem:nth-child(2n) {
+  border-right: none;
+}
+
+.stockInfo {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: var(--border-width) solid var(--black);
+}
+
+.stockVisual {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--white);
+  transition: background-color 0.2s ease;
+}
+
+.chartContainer {
+  flex-grow: 1;
+  border: var(--border-width) solid var(--black);
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 49px,
+    rgba(0, 0, 0, 0.05) 50px
+  );
+}
+
+.sparkline {
+  width: 100%;
+  height: 100%;
+  stroke: var(--black);
+  stroke-width: 3;
+  fill: none;
+}
+
+.stockItem:hover {
+  background-color: var(--neon);
+}
+
+.stockItem:hover .stockVisual {
+  background-color: var(--neon);
+}
+
+.btnAction {
+  display: inline-block;
+  margin-top: 12px;
+  color: #009900;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 12px;
+  border-bottom: 1px solid transparent;
+  align-self: flex-start;
+}
+.btnAction:hover {
+  border-bottom: 1px solid #009900;
+}
+
+.indexNumber {
+  font-size: 140px;
+  line-height: 0.75;
+  letter-spacing: -0.05em;
+  margin-bottom: 20px;
+  font-weight: 800;
+}
+
+.priceLarge {
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.metaData {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metaBlock {
+  border-top: var(--border-width) solid var(--black);
+  padding-top: 8px;
+}
+
+/* Footer */
+.footer {
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer ul {
+  display: flex;
+  list-style: none;
+  gap: 16px;
+}
+
+.footer a {
+  color: var(--black);
+  text-decoration: none;
+}
+
+.up {
+  color: #009900;
+}
+.down {
+  color: #cc0000;
+}
+
+/* Responsive: stack the grid on small screens (preserves the brutalist feel) */
+@media (max-width: 768px) {
+  .marketBanner {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .heroTitle {
+    grid-column: auto;
+  }
+  .stockGrid {
+    grid-template-columns: 1fr;
+  }
+  .stockItem {
+    border-right: none;
+  }
+}
