@@ -8,19 +8,30 @@ closed (nights, weekends, holidays) the on-chain price keeps moving while the
 last cash-market print sits still — and the two drift apart. **The Spread**
 surfaces that gap, live, to the cent.
 
-For every asset it shows:
+The home screen is a **grid of live overlay charts** — one per asset — each
+plotting the **Hyperliquid price (solid)** against the **Wall Street price
+(dashed)**. The vertical gap between the two lines *is* the spread, and each card
+shows the live spread % (green premium / red discount). Hyperliquid prices stream
+in **real time over a WebSocket**, so the lines and badges tick live.
 
-- the live **Hyperliquid** price (and its 24h move),
-- the latest **Wall Street** price (and previous close),
-- the **spread** in absolute terms and percent, labelled **premium**
-  (Hyperliquid trades above) or **discount** (Hyperliquid trades below),
-- a **24h sparkline** of the Hyperliquid price,
-- Hyperliquid open interest, and an overall market-status badge.
+Click any card to open a **detail page** (`/asset/SYMBOL`) with a large
+interactive overlay chart: a crosshair readout (Hyperliquid price, Wall Street
+price, and the spread at the hovered moment), a live stat strip, and a
+**1H / 1D / 5D / 1M** range toggle.
 
 Stocks are the default view; **Indices**, **ETFs** and **Commodities** are
-available via the category tabs. You can sort by any column, search, export the
-current table to **CSV/JSON**, and your category/sort preferences are remembered
-across visits.
+available via the category tabs. You can search, export the current set to
+**CSV/JSON**, and your category/sort preferences are remembered across visits.
+
+### Real-time data model
+- **Hyperliquid** prices stream live from the public WebSocket
+  (`wss://api.hyperliquid.xyz/ws`, `allMids` on the `xyz` perp dex) — sub-second,
+  24/7. A single shared socket fans out to every chart.
+- **Wall Street** prices come from Yahoo Finance (server-side), seeded as an
+  intraday history line and refreshed periodically. They are **not** tick-by-tick
+  and go flat when the market is closed — which is exactly when the spread is most
+  interesting. (A paid feed like Polygon/Finnhub could make the stock side
+  real-time too; easy to add behind the same interface.)
 
 ## What "spread" means here
 
@@ -71,6 +82,7 @@ clean public quote.
 
 - [Next.js 16](https://nextjs.org) (App Router) + TypeScript
 - [Tailwind CSS v4](https://tailwindcss.com)
+- [lightweight-charts](https://tradingview.github.io/lightweight-charts/) v5 for the overlay charts
 - [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) via `next/font`
 - No database, no API keys — runs out of the box.
 
@@ -95,11 +107,13 @@ app/
   page.tsx                # masthead + dashboard + footer
   globals.css             # white-aesthetic design tokens
   api/spreads/route.ts    # combines Hyperliquid + Yahoo, computes spreads
-  api/sparklines/route.ts # 24h Hyperliquid close series per asset
-components/                # dashboard, table, cards, tabs, sparkline, badges
+  api/history/route.ts    # HL candle + Yahoo intraday series for overlay charts
+  asset/[symbol]/page.tsx # per-asset detail page
+components/                # board, asset cards, overlay chart, detail, tabs, badges
 lib/
-  hyperliquid.ts           # HL info API client (mids, ctxs, candles)
-  yahoo.ts                 # Yahoo chart client (+ concurrency-limited batch)
+  hyperliquid.ts           # HL info API client (mids, ctxs, candle points)
+  hlSocket.ts              # client-side HL WebSocket manager (live prices)
+  yahoo.ts                 # Yahoo client (quote + intraday series)
   universe.ts              # curated asset mapping + categories
   spread.ts                # spread / % math
   marketHours.ts           # US session status

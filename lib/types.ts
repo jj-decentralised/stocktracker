@@ -46,13 +46,6 @@ export interface SpreadsResponse {
   rows: SpreadRow[];
 }
 
-export interface SparklineResponse {
-  /** Epoch ms when assembled. */
-  updatedAt: number;
-  /** symbol -> series of Hyperliquid close prices (oldest -> newest). */
-  series: Record<string, number[]>;
-}
-
 /** A single time-series point. `time` is epoch **seconds** (lightweight-charts UTCTimestamp). */
 export interface Point {
   time: number;

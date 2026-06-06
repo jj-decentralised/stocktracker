@@ -34,6 +34,7 @@ export function AssetDetail({
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional loading state when symbol/range changes.
     setLoading(true);
     (async () => {
       try {
